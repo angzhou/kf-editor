@@ -4026,6 +4026,21 @@ define("graphic/matrix", [ "core/utils", "graphic/box", "core/class", "graphic/p
             f: 0
         };
         refer = refer || "parent";
+        /**
+          * 由于新版chrome(dev 48.0)移除了getTransformToElement这个方法可能导致报错，这里做兼容处理
+          * @Date 2015-11-12
+          * @Editor Naixor
+          */
+        function getTransformToElement(target, source) {
+            var matrix;
+            try {
+                matrix = source.getScreenCTM().inverse();
+            } catch(e) {
+                throw new Error('Can not inverse source element\' ctm.');
+            }
+            return matrix.multiply(target.getScreenCTM());
+        }
+
         // 根据参照坐标系选区的不一样，返回不同的结果
         switch (refer) {
           case "screen":
@@ -4043,21 +4058,24 @@ define("graphic/matrix", [ "core/utils", "graphic/box", "core/class", "graphic/p
           case "top":
             // 以顶层绘图容器（视野）为参照坐标系
             if (target.getPaper()) {
-                ctm = target.node.getTransformToElement(target.getPaper().shapeNode);
+                //ctm = target.node.getTransformToElement(target.getPaper().shapeNode);
+                ctm = target.node.getTransformToElement !== undefined ? target.node.getTransformToElement(target.getPaper().shapeNode) : getTransformToElement(target.node, target.getPaper().shapeNode);
             }
             break;
 
           case "parent":
             // 以父容器为参照坐标系
             if (target.node.parentNode) {
-                ctm = target.node.getTransformToElement(target.node.parentNode);
+                //ctm = target.node.getTransformToElement(target.node.parentNode);
+                ctm = target.node.getTransformToElement !== undefined ? target.node.getTransformToElement(target.node.parentNode) : getTransformToElement(target.node, target.node.parentNode);
             }
             break;
 
           default:
             // 其他情况，指定参照物
             if (refer.node) {
-                ctm = target.node.getTransformToElement(refer.shapeNode || refer.node);
+                //ctm = target.node.getTransformToElement(refer.shapeNode || refer.node);
+                ctm = target.node.getTransformToElement !== undefined ? target.node.getTransformToElement(refer.shapeNode || refer.node) : getTransformToElement(target.node, refer.shapeNode || refer.node);
             }
         }
         return ctm ? new Matrix(ctm.a, ctm.b, ctm.c, ctm.d, ctm.e, ctm.f) : new Matrix();
